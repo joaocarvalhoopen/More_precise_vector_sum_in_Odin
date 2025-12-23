@@ -19,6 +19,61 @@ sum :: proc "contextless" (x: $T/[]$E) -> (res: E)
 	return
 }
 
+// from core/math.odin line 1629 Improved version
+@(require_results)
+sum_long :: proc "contextless" ( x : $T / [ ]$E ) -> ( res: E )
+	where intrinsics.type_is_numeric( E ) {
+
+	if len( x ) < 40 {
+
+    	for i in x {
+
+    		res += i
+    	}
+
+        return res
+	}
+
+	// Process each time a cache line of 64 bytes, to maximize the ALU without dependencies.
+	CACHE_LINE_BYTES : int : 64
+	NUM_LEMENTS      : int : CACHE_LINE_BYTES / size_of( E )
+
+	div_n_num  : int = int( len( x ) / NUM_LEMENTS )
+	rest_n_num : int = len( x ) % NUM_LEMENTS
+
+	s : [ NUM_LEMENTS ]E
+	// ii : int
+	for i in 0 ..< div_n_num {
+
+	    ii := i * NUM_LEMENTS
+		// ii += NUM_LEMENTS
+
+		#unroll for i in 0 ..< NUM_LEMENTS {
+
+		    s[ i ] += x[ ii + i ]
+		}
+
+	}
+
+	// Adds all the sub accumulators, to max the cache line and the ALU's
+	for i in 0 ..< NUM_LEMENTS {
+
+	    res += s[ i ]
+	}
+
+	for i in div_n_num * NUM_LEMENTS ..< len( x ) {
+
+	    res += x[ i ]
+	}
+
+    // s = s1 + s2 + s3 + s4;
+
+	return res
+}
+
+
+
+
 // Original Kahan Summation Algorithm - Compensated sum.
 // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
 @(require_results)
@@ -587,7 +642,21 @@ test_more_precise_vec_sum :: proc ( ) {
 
     fmt.printfln( "normal_sum                  = %17f  Hex = %H  duration = %.3f ms",
                   res_normal_sum, res_normal_sum, ms )
-    fmt.printfln( "                                       ^_____Big Error in value in Odin sum() !\n" )
+    fmt.printfln( "                                       ^_____Big Error in value in Odin sum() !__________^\n" )
+
+
+
+   	start = time.now()
+
+    res_sum_long : f64 = sum_long( vec_a )
+
+    elapsed = time.since( start )
+    ms      = time.duration_milliseconds( elapsed )
+
+    fmt.printfln( "sum_long                    = %17f  Hex = %H  duration = %.3f ms",
+                  res_sum_long, res_sum_long, ms )
+    fmt.printfln( "                                         ^_sum_long() faster more precis then Odin sum()_^\n" )
+
 
 
     start = time.now()
