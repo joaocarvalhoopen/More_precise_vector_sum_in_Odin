@@ -38,25 +38,22 @@ sum_long :: proc "contextless" ( x : $T / [ ]$E ) -> ( res: E )
 	CACHE_LINE_BYTES : int : 64
 	NUM_LEMENTS      : int : CACHE_LINE_BYTES / size_of( E )
 
-	div_n_num  : int = int( len( x ) / NUM_LEMENTS )
-	rest_n_num : int = len( x ) % NUM_LEMENTS
+	div_n_num  : int = len( x ) / NUM_LEMENTS
+	// rest_n_num : int = len( x ) % NUM_LEMENTS
 
 	s : [ NUM_LEMENTS ]E
-	// ii : int
 	for i in 0 ..< div_n_num {
 
 	    ii := i * NUM_LEMENTS
-		// ii += NUM_LEMENTS
 
 		#unroll for i in 0 ..< NUM_LEMENTS {
 
 		    s[ i ] += x[ ii + i ]
 		}
-
 	}
 
 	// Adds all the sub accumulators, to max the cache line and the ALU's
-	for i in 0 ..< NUM_LEMENTS {
+	#unroll for i in 0 ..< NUM_LEMENTS {
 
 	    res += s[ i ]
 	}
@@ -633,97 +630,196 @@ test_more_precise_vec_sum :: proc ( ) {
     }
 
 
-   	start := time.now()
+    // Running total value so that the test code is not removed by optimization.
+    total : f64
+    NUM_TEST_ITER :: 20
 
     res_normal_sum : f64 = sum( vec_a )
+
+   	start := time.now()
+
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += sum( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed := time.since( start )
     ms      := time.duration_milliseconds( elapsed )
 
     fmt.printfln( "normal_sum                  = %17f  Hex = %H  duration = %.3f ms",
-                  res_normal_sum, res_normal_sum, ms )
+                  res_normal_sum,
+                  res_normal_sum,
+                  ms / NUM_TEST_ITER )
     fmt.printfln( "                                       ^_____Big Error in value in Odin sum() !__________^\n" )
 
 
 
+    res_sum_long : f64 = sum_long( vec_a )
+
    	start = time.now()
 
-    res_sum_long : f64 = sum_long( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += sum_long( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
     fmt.printfln( "sum_long                    = %17f  Hex = %H  duration = %.3f ms",
-                  res_sum_long, res_sum_long, ms )
+                  res_sum_long,
+                  res_sum_long,
+                  ms / NUM_TEST_ITER )
     fmt.printfln( "                                         ^_sum_long() faster more precis then Odin sum()_^\n" )
 
 
+    res_kahan_sum : f64 = kahan_sum( vec_a )
 
     start = time.now()
 
-    res_kahan_sum : f64 = kahan_sum( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += kahan_sum( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
 
     fmt.printfln( "kahan_sum                   = %17f  Hex = %H  duration = %.3f ms",
-                  res_kahan_sum, res_kahan_sum, ms )
+                  res_kahan_sum,
+                  res_kahan_sum,
+                  ms / NUM_TEST_ITER )
 
+
+    res_kahan_babushka_neumaier_sum : f64 = kahan_babushka_neumaier_sum( vec_a )
 
     start = time.now()
 
-    res_kahan_babushka_neumaier_sum : f64 = kahan_babushka_neumaier_sum( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += kahan_babushka_neumaier_sum( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
     fmt.printfln( "kahan_babushka_neumaier_sum = %17f  Hex = %H  duration = %.3f ms",
-                  res_kahan_babushka_neumaier_sum, res_kahan_babushka_neumaier_sum, ms )
+                  res_kahan_babushka_neumaier_sum,
+                  res_kahan_babushka_neumaier_sum,
+                  ms / NUM_TEST_ITER )
 
+
+    res_kahan_babushka_klein_sum : f64 = kahan_babushka_klein_sum( vec_a )
 
     start = time.now()
 
-    res_kahan_babushka_klein_sum : f64 = kahan_babushka_klein_sum( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += kahan_babushka_klein_sum( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
     fmt.printfln( "kahan_babushka_klein_sum    = %17f  Hex = %H  duration = %.3f ms\n",
-                  res_kahan_babushka_klein_sum, res_kahan_babushka_klein_sum, ms )
+                  res_kahan_babushka_klein_sum,
+                  res_kahan_babushka_klein_sum,
+                  ms / NUM_TEST_ITER )
 
+
+    res_shift_reduce_sum : f64 = shift_reduce_sum( vec_a )
 
     start = time.now()
 
-    res_shift_reduce_sum : f64 = shift_reduce_sum( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += shift_reduce_sum( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
     fmt.printfln( "shift_reduce_sum            = %17f  Hex = %H  duration = %.3f ms\n",
-                  res_shift_reduce_sum, res_shift_reduce_sum, ms )
+                  res_shift_reduce_sum,
+                  res_shift_reduce_sum,
+                  ms / NUM_TEST_ITER )
 
+
+    res_shift_reduce_sum_unrolled : f64 = shift_reduce_sum_unrolled( vec_a )
 
     start = time.now()
 
-    res_shift_reduce_sum_unrolled : f64 = shift_reduce_sum_unrolled( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += shift_reduce_sum_unrolled( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
     fmt.printfln( "shift_reduce_sum_unrolled   = %17f  Hex = %H  duration = %.3f ms\n",
-                  res_shift_reduce_sum_unrolled, res_shift_reduce_sum_unrolled, ms )
+                  res_shift_reduce_sum_unrolled,
+                  res_shift_reduce_sum_unrolled,
+                  ms / NUM_TEST_ITER )
 
+
+    res_shift_reduce_sum_unrolled_2 : f64 = shift_reduce_sum_unrolled_2( vec_a )
 
     start = time.now()
 
-    res_shift_reduce_sum_unrolled_2 : f64 = shift_reduce_sum_unrolled_2( vec_a )
+    for i in 0 ..< NUM_TEST_ITER {
+
+        // Volatile
+        my_var := intrinsics.volatile_load( & total )
+
+        my_var += shift_reduce_sum_unrolled_2( vec_a )
+
+        intrinsics.volatile_store( & total, my_var )
+    }
 
     elapsed = time.since( start )
     ms      = time.duration_milliseconds( elapsed )
 
     fmt.printfln( "shift_reduce_sum_unrolled_2 = %17f  Hex = %H  duration = %.3f ms",
-                  res_shift_reduce_sum_unrolled_2, res_shift_reduce_sum_unrolled_2, ms )
+                  res_shift_reduce_sum_unrolled_2,
+                  res_shift_reduce_sum_unrolled_2,
+                  ms / NUM_TEST_ITER )
 
     fmt.printfln( "                                               Best Compromise!__________________________^\n" )
 
@@ -739,4 +835,9 @@ test_more_precise_vec_sum :: proc ( ) {
     fmt.printfln( "big_rat_rational_sum        = %17f  Hex = %H  duration = %.3f ms",
                    res_big_rat_rational_sum, res_big_rat_rational_sum, ms )
     fmt.printfln( "big_sum exact_str           = %s", result_exact_str )
+
+
+    // This value doesnt do anything is just here so it isn't removed.
+    fmt.printfln( "\nTotal : %.17f\n", total )
+
 }

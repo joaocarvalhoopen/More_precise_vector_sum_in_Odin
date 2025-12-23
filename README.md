@@ -18,25 +18,25 @@ This are values for the sum of 1 Mega elements ( 1024 x 1024 ).
 Begin a more precise vector sum in Odin ...
 
 
-normal_sum                  = 55027917630045.828  Hex = 0h42C90617BDD52EEA  duration = 0.505 ms
+normal_sum                  = 55027917630045.828  Hex = 0h42C90617BDD52EEA  duration = 0.460 ms
                                        ^_____Big Error in value in Odin sum() !__________^
 
-sum_long                    = 55027917629395.984  Hex = 0h42C90617BDD3E9FE  duration = 0.243 ms
+sum_long                    = 55027917629395.984  Hex = 0h42C90617BDD3E9FE  duration = 0.129 ms
                                          ^_sum_long() faster more precis then Odin sum()_^
 
-kahan_sum                   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.829 ms
-kahan_babushka_neumaier_sum = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.942 ms
-kahan_babushka_klein_sum    = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 2.074 ms
+kahan_sum                   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.646 ms
+kahan_babushka_neumaier_sum = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.790 ms
+kahan_babushka_klein_sum    = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.318 ms
 
-shift_reduce_sum            = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.875 ms
+shift_reduce_sum            = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.517 ms
 
-shift_reduce_sum_unrolled   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.186 ms
+shift_reduce_sum_unrolled   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.886 ms
 
-shift_reduce_sum_unrolled_2 = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.698 ms
+shift_reduce_sum_unrolled_2 = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.520 ms
                                                Best Compromise!__________________________^
 
 sum( f64 ) = 55027917629453.828  exact? = false
-big_rat_rational_sum        = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1581.403 ms
+big_rat_rational_sum        = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1559.617 ms
 big_sum exact_str           = 55027917629453827809570654574
 
 

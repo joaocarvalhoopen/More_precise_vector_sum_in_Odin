@@ -2,7 +2,10 @@ all:
 	odin build . -out:mp_vec_sum.exe
 
 opti:
-	odin build . -out:mp_vec_sum_opti.exe -o:speed -no-bounds-check
+	# odin build . -out:mp_vec_sum_opti.exe -o:speed -no-bounds-check -microarch:native
+	# odin build . -out:mp_vec_sum_opti.exe -o:aggressive -no-bounds-check -microarch:native
+	odin build . -out:mp_vec_sum_opti.exe -o:aggressive -no-bounds-check
+	# odin build . -out:mp_vec_sum_opti.exe -o:speed -no-bounds-check
 
 clean:
 	rm -f ./mp_vec_sum.exe \
