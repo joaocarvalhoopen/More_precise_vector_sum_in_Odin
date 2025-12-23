@@ -7,6 +7,7 @@ import "core:math/big"
 import "core:os"
 import "core:strings"
 import "core:time"
+import "core:math/bits"
 
 // from core/math.odin line 1629
 @(require_results)
@@ -174,6 +175,229 @@ double shift_reduce_sum(double ∗x, size_t n) {
 }
 
 */
+
+
+
+
+
+
+
+
+// Enough for log2( n ) partials on any target.
+// ( Pointer-width in bits ) + 1
+STACK_CAP :: 8 * size_of( uintptr ) + 1
+
+shift_reduce_sum_unrolled :: proc( x : [ ]f64 ) -> f64 {
+
+	stack : [ STACK_CAP ]f64
+	p     : int = 0
+
+//	#no_bounds_check {
+		for idx in 0 ..< len( x ) {
+
+			v := x[ idx ]
+
+			// k = number of trailing ones in idx
+			// ( because trailing_ones( i ) == ctz( ~i ) )
+			k := int( bits.count_trailing_zeros( ~uintptr( idx ) ) )
+
+			// Unroll the overwhelmingly common cases.
+			switch k {
+
+			case 0:
+				// nothing
+				//
+			case 1:
+				p -= 1; v += stack[ p ]
+
+			case 2:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+			case 3:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+			case 4:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+			case 5:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+			case 6:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+			case 7:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+			case 8:
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+				p -= 1; v += stack[ p ]
+
+	/*
+			case:
+				// Extremely rare (probability ~ 2^-(k+1)); keep correctness.
+				for j := 0; j < k; j += 1 {
+
+				    p -= 1
+					v += stack[ p ]
+
+				}
+			}
+    */
+
+			case:
+
+                // Rare path: fall back to original carry loop ( exactly correct, avoids p underflow )
+                ii := uintptr( idx )
+                b : uintptr = 1
+                for b != 0 && (ii & b) != 0 {
+
+                    p -= 1
+                    v += stack[ p ]
+                    b <<= 1
+                }
+            }
+
+
+			stack[ p ] = v
+			p += 1
+		}
+
+		// Final drain ( unrolled 4-at-a-time )
+		sum : f64 = 0.0
+		for p >= 4 {
+
+			p -= 1; sum += stack[ p ]
+			p -= 1; sum += stack[ p ]
+			p -= 1; sum += stack[ p ]
+			p -= 1; sum += stack[ p ]
+		}
+		for p > 0 {
+
+			p -= 1
+			sum += stack[ p ]
+		}
+
+		return sum
+// 	}
+}
+
+
+STACK_CAP_2 :: ( 8 * size_of( uintptr ) ) + 1 // bits in pointer + 1 ( e.g., 65 on 64-bit )
+
+// Shift-reduce (pairwise-like) summation with carry-unrolled reduction.
+shift_reduce_sum_unrolled_2 :: proc( x : []f64 ) -> f64 {
+
+    n := len( x )
+    if n == 0 {
+
+        return 0.0
+    }
+
+    stack : [ STACK_CAP ]f64
+    p : int = 0
+
+    px := raw_data( x ) // ^f64
+
+    // Main loop: shift then reduce (carry propagation) then push.
+    for i : uintptr = 0; i < uintptr( n ); i += 1 {
+
+        v  := px[ i ]
+        ii := i
+
+        // Unrolled "while ( ii & 1 ) { pop; ii >>= 1 }" without shifting ii,
+        // using nested tests that enforce trailing-ones semantics.
+        if ( ii & 1 ) != 0 {
+
+            p -= 1; v += stack[ p ]
+            if ( ii & 2 ) != 0 {
+
+                p -= 1; v += stack[ p ]
+                if ( ii & 4 ) != 0 {
+
+                    p -= 1; v += stack[ p ]
+                    if ( ii & 8 ) != 0 {
+
+                        p -= 1; v += stack[ p ]
+                        if ( ii & 16 ) != 0 {
+
+                            p -= 1; v += stack[ p ]
+                            if ( ii & 32 ) != 0 {
+
+                                p -= 1; v += stack[ p ]
+                                if ( ii & 64 ) != 0 {
+
+                                    p -= 1; v += stack[ p ]
+                                    if ( ii & 128 ) != 0 {
+
+                                        p -= 1; v += stack[ p ]
+
+                                        // Rare case: more than 8 trailing ones.
+                                        b : uintptr = 256
+                                        for ( ii & b ) != 0 {
+
+                                            p -= 1
+                                            v += stack[ p ]
+                                            b <<= 1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Push
+        stack[ p ] = v
+        p += 1
+    }
+
+    // Final drain (unrolled 4-at-a-time)
+    sum : f64 = 0.0
+    for p >= 4 {
+
+        p -= 1; sum += stack[ p ]
+        p -= 1; sum += stack[ p ]
+        p -= 1; sum += stack[ p ]
+        p -= 1; sum += stack[ p ]
+    }
+
+    for p > 0 {
+
+        p -= 1
+        sum += stack[ p ]
+    }
+
+    return sum
+}
 
 
 
@@ -409,6 +633,32 @@ test_more_precise_vec_sum :: proc ( ) {
 
     fmt.printfln( "shift_reduce_sum            = %17f  Hex = %H  duration = %.3f ms\n",
                   res_shift_reduce_sum, res_shift_reduce_sum, ms )
+
+
+    start = time.now()
+
+    res_shift_reduce_sum_unrolled : f64 = shift_reduce_sum_unrolled( vec_a )
+
+    elapsed = time.since( start )
+    ms      = time.duration_milliseconds( elapsed )
+
+    fmt.printfln( "shift_reduce_sum_unrolled   = %17f  Hex = %H  duration = %.3f ms\n",
+                  res_shift_reduce_sum_unrolled, res_shift_reduce_sum_unrolled, ms )
+
+
+    start = time.now()
+
+    res_shift_reduce_sum_unrolled_2 : f64 = shift_reduce_sum_unrolled_2( vec_a )
+
+    elapsed = time.since( start )
+    ms      = time.duration_milliseconds( elapsed )
+
+    fmt.printfln( "shift_reduce_sum_unrolled_2 = %17f  Hex = %H  duration = %.3f ms",
+                  res_shift_reduce_sum_unrolled_2, res_shift_reduce_sum_unrolled_2, ms )
+
+    fmt.printfln( "                                               Best Compromise!__________________________^\n" )
+
+
 
     start = time.now()
 

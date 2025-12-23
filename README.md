@@ -9,23 +9,31 @@ See the references below, and the results for an example for Odin below.
 
 ## Results
 
+This are values for the sum of 1 Mega elements ( 1024 x 1024 ).
+
+
 ```
 ./mp_vec_sum_opti.exe
 
 Begin a more precise vector sum in Odin ...
 
 
-normal_sum                  = 55027917630045.828  Hex = 0h42C90617BDD52EEA  duration = 0.510 ms
+normal_sum                  = 55027917630045.828  Hex = 0h42C90617BDD52EEA  duration = 0.496 ms
                                        ^_____Big Error in value in Odin sum() !
 
-kahan_sum                   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.832 ms
-kahan_babushka_neumaier_sum = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.940 ms
-kahan_babushka_klein_sum    = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 2.059 ms
+kahan_sum                   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.857 ms
+kahan_babushka_neumaier_sum = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.943 ms
+kahan_babushka_klein_sum    = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 2.057 ms
 
-shift_reduce_sum            = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.793 ms
+shift_reduce_sum            = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.753 ms
+
+shift_reduce_sum_unrolled   = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1.188 ms
+
+shift_reduce_sum_unrolled_2 = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 0.630 ms
+                                               Best Compromise!__________________________^
 
 sum( f64 ) = 55027917629453.828  exact? = false
-big_rat_rational_sum        = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1586.305 ms
+big_rat_rational_sum        = 55027917629453.828  Hex = 0h42C90617BDD406EA  duration = 1569.218 ms
 big_sum exact_str           = 55027917629453827809570654574
 
 
